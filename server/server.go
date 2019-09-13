@@ -1,18 +1,19 @@
 package main
 
 import (
-	"context"
+	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/habuvo/grpc-stream/hello"
 	"io"
 	"log"
 	"net"
+	"time"
 
 	"google.golang.org/grpc"
 )
 
 type server struct{}
 
-func (_ *server) Hello(stream hello.Hello_HelloServer) error {
+func (_ *server) Exchange(stream hello.Hello_ExchangeServer) error {
 	for {
 		_, err := stream.Recv()
 		if err == io.EOF {
@@ -27,8 +28,21 @@ func (_ *server) Hello(stream hello.Hello_HelloServer) error {
 	}
 }
 
-func (_ *server) HelloOnce(ctx context.Context,in *hello.HelloRequest) (*hello.HelloResponse,error) {
-	return &hello.HelloResponse{},nil
+func (_ *server) Command(_ *empty.Empty, stream hello.Hello_CommandServer) error {
+	tick := time.Tick(time.Second * 1)
+	for range tick {
+		err := stream.Send(&hello.HelloResponse{})
+		if err == io.EOF {
+			log.Println("Received EOF")
+			return nil
+		}
+		if err != nil {
+			log.Println("Received error:", err)
+			return err
+		}
+		log.Println("Send hello response")
+	}
+	return nil
 }
 
 func main() {

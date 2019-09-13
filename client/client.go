@@ -1,8 +1,11 @@
 package main
 
 import (
+	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/habuvo/grpc-stream/hello"
 	"log"
+	"os"
+	"os/signal"
 	"time"
 
 	"google.golang.org/grpc"
@@ -18,22 +21,49 @@ func main() {
 		log.Fatal("can't connect")
 	}
 	client := hello.NewHelloClient(conn)
-	for {
-		stream,err := client.Hello(context.Background())
-		if err != nil {
-			log.Println("error get stream",err)
-			time.Sleep(time.Second)
-		} else {
-			for {
-				err := stream.Send(&hello.HelloRequest{})
-				if err != nil {
-					log.Println("Error sending:", err)
-					break
-				} else {
-					log.Println("message send")
-				}
+	//send
+	go func() {
+		for {
+			stream, err := client.Exchange(context.Background())
+			if err != nil {
+				log.Println("error get stream", err)
 				time.Sleep(time.Second)
+			} else {
+				tick := time.Tick(time.Second * 1)
+				for range tick {
+					err := stream.Send(&hello.HelloRequest{})
+					if err != nil {
+						log.Println("Error sending:", err)
+						break
+					} else {
+						log.Println("message send")
+					}
+				}
 			}
 		}
-	}
+	}()
+	//receive
+	go func() {
+		for {
+			stream, err := client.Command(context.Background(), &empty.Empty{})
+			if err != nil {
+				log.Println("error get stream", err)
+				time.Sleep(time.Second)
+			} else {
+				tick := time.Tick(time.Second * 1)
+				for range tick {
+					_, err := stream.Recv()
+					if err != nil {
+						log.Println("Error sending:", err)
+						break
+					} else {
+						log.Println("message receive")
+					}
+				}
+			}
+		}
+	}()
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	<-c
 }

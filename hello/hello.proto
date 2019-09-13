@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+import "google/protobuf/empty.proto";
+
 package hello;
 
 message HelloRequest {}
@@ -7,6 +9,8 @@ message HelloRequest {}
 message HelloResponse {}
 
 service Hello {
-    rpc Hello(stream HelloRequest) returns (HelloResponse) {}
-    rpc HelloOnce(HelloRequest) returns (HelloResponse) {}
+    rpc Exchange (stream HelloRequest) returns (google.protobuf.Empty) {
+    }
+    rpc Command (google.protobuf.Empty) returns (stream HelloResponse) {
+    }
 }
