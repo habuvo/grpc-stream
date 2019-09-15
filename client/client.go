@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/habuvo/grpc-stream/hello"
+	"google.golang.org/grpc/keepalive"
 	"log"
 	"os"
 	"os/signal"
@@ -16,6 +17,10 @@ import (
 func main() {
 	conn, err := grpc.Dial("localhost:1234",
 		grpc.WithBackoffConfig(grpc.BackoffConfig{MaxDelay: 2 * time.Second}),
+		grpc.WithKeepaliveParams(keepalive.ClientParameters{
+			Time:    time.Second * 10,
+			Timeout: time.Second * 5,
+		}),
 		grpc.WithInsecure())
 	if err != nil {
 		log.Fatal("can't connect")
